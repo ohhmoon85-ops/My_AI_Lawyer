@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>나의 AI 변호사 — 종합 기획서</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0b1c36;
+    --navy-mid: #152847;
+    --navy-light: #1e3760;
+    --gold: #c9a84c;
+    --gold-light: #e8c97a;
+    --gold-pale: #f5e9c8;
+    --cream: #faf7f0;
+    --cream-dark: #f0ebe0;
+    --text-main: #1a1a2e;
+    --text-mid: #3d3d5c;
+    --text-muted: #6b6b8a;
+    --white: #ffffff;
+    --border: rgba(201,168,76,0.25);
+    --border-light: rgba(201,168,76,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--cream);
+    color: var(--text-main);
+    line-height: 1.7;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    background: var(--navy);
+    color: var(--white);
+    padding: clamp(3rem, 8vw, 6rem) clamp(1.5rem, 5vw, 4rem);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '⚖';
+    position: absolute;
+    right: -2rem;
+    top: -3rem;
+    font-size: clamp(10rem, 20vw, 18rem);
+    opacity: 0.04;
+    line-height: 1;
+    pointer-events: none;
+  }
+  .hero-badge {
+    display: inline-block;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    font-size: 0.7rem;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.2em;
+    padding: 0.35rem 0.9rem;
+    border-radius: 2px;
+    margin-bottom: 1.5rem;
+    text-transform: uppercase;
+  }
+  .hero h1 {
+    font-family: 'Noto Serif KR', serif;
+    font-size: clamp(2rem, 5vw, 3.6rem);
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 1rem;
+  }
+  .hero h1 span { color: var(--gold-light); }
+  .hero-sub {
+    font-size: clamp(0.9rem, 2vw, 1.05rem);
+    color: rgba(255,255,255,0.6);
+    max-width: 580px;
+    font-weight: 300;
+    margin-bottom: 2.5rem;
+  }
+  .hero-meta {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+  .hero-meta-item {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.45);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+  .hero-meta-item strong {
+    display: block;
+    color: var(--gold);
+    font-size: 0.72rem;
+    margin-bottom: 0.2rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  /* ── LAYOUT ── */
+  .page { max-width: 960px; margin: 0 auto; padding: clamp(2rem, 5vw, 4rem) clamp(1.25rem, 4vw, 3rem); }
+
+  /* ── SECTION HEADER ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--gold);
+    background: rgba(201,168,76,0.1);
+    border: 1px solid var(--border);
+    padding: 0.2rem 0.55rem;
+    border-radius: 2px;
+    letter-spacing: 0.1em;
+  }
+  .section-title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+    font-weight: 700;
+    color: var(--navy);
+  }
+
+  section { margin-bottom: clamp(3rem, 6vw, 4.5rem); }
+
+  /* ── OVERVIEW CARD ── */
+  .overview-card {
+    background: var(--navy);
+    border-radius: 8px;
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+    color: var(--white);
+    position: relative;
+    overflow: hidden;
+  }
+  .overview-card::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0; bottom: 0;
+    width: 4px;
+    background: linear-gradient(to bottom, var(--gold), transparent);
+  }
+  .overview-card p {
+    color: rgba(255,255,255,0.75);
+    font-size: 0.95rem;
+    line-height: 1.8;
+    margin-bottom: 1.5rem;
+  }
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+  .feature-item {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+  }
+  .feature-item .f-icon {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+    display: block;
+  }
+  .feature-item .f-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--gold-light);
+    margin-bottom: 0.35rem;
+    letter-spacing: 0.03em;
+  }
+  .feature-item .f-desc {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.55;
+  }
+
+  /* ── TECH STACK ── */
+  .tech-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .tech-table thead tr {
+    background: var(--navy);
+    color: var(--gold);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .tech-table th, .tech-table td {
+    padding: 0.85rem 1.1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .tech-table tbody tr { background: var(--white); transition: background 0.15s; }
+  .tech-table tbody tr:hover { background: var(--cream-dark); }
+  .tech-table tbody tr:last-child td { border-bottom: none; }
+  .tech-table .cat {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  .tech-badge {
+    display: inline-block;
+    background: var(--navy);
+    color: var(--gold-light);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+  .tech-note { font-size: 0.8rem; color: var(--text-muted); }
+
+  /* ── ARCHITECTURE ── */
+  .arch-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0.5rem 0;
+  }
+  .arch-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.25rem;
+  }
+  .arch-step-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+    width: 2.5rem;
+  }
+  .arch-num {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background: var(--navy);
+    color: var(--gold);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 2px solid var(--gold);
+  }
+  .arch-line {
+    width: 1px;
+    flex: 1;
+    min-height: 2rem;
+    background: var(--border);
+    margin: 0.25rem 0;
+  }
+  .arch-content {
+    background: var(--white);
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    flex: 1;
+    margin-bottom: 0.5rem;
+  }
+  .arch-content h4 {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 0.35rem;
+  }
+  .arch-content p {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+  .arch-tag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    background: rgba(201,168,76,0.12);
+    color: var(--gold);
+    border: 1px solid var(--border);
+    padding: 0.1rem 0.45rem;
+    border-radius: 2px;
+    margin-top: 0.4rem;
+    letter-spacing: 0.08em;
+  }
+
+  /* ── ROADMAP ── */
+  .roadmap-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+  }
+  .roadmap-card {
+    background: var(--white);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 1.4rem 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .roadmap-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--gold);
+    opacity: 0.5;
+  }
+  .roadmap-card.active::before { opacity: 1; }
+  .roadmap-phase {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--gold);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+  .roadmap-card h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 1rem;
+    line-height: 1.4;
+  }
+  .roadmap-tasks { list-style: none; }
+  .roadmap-tasks li {
+    font-size: 0.8rem;
+    color: var(--text-mid);
+    padding: 0.35rem 0;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    line-height: 1.5;
+  }
+  .roadmap-tasks li:last-child { border-bottom: none; }
+  .roadmap-tasks li::before {
+    content: '–';
+    color: var(--gold);
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-top: 0.05rem;
+  }
+
+  /* ── PROMPT GUIDE ── */
+  .prompt-box {
+    background: var(--navy);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .prompt-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid rgba(201,168,76,0.15);
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #ff5f57; }
+  .dot-y { background: #febc2e; }
+  .dot-g { background: #28c840; }
+  .prompt-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    color: rgba(255,255,255,0.35);
+    margin-left: auto;
+    letter-spacing: 0.1em;
+  }
+  .prompt-body {
+    padding: 1.5rem 1.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.85);
+    line-height: 1.8;
+  }
+  .prompt-body .kw { color: var(--gold-light); }
+  .prompt-body .str { color: #a8e6cf; }
+  .prompt-body .cm { color: rgba(255,255,255,0.35); }
+
+  /* ── SECURITY ── */
+  .security-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+  }
+  .security-card {
+    border-radius: 6px;
+    padding: 1.25rem 1.4rem;
+    border-left: 3px solid;
+  }
+  .security-card.warn { background: #fff8ed; border-color: #e8a000; }
+  .security-card.info { background: #eef4ff; border-color: #2563eb; }
+  .security-card h4 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+  .security-card.warn h4 { color: #92540a; }
+  .security-card.info h4 { color: #1e3a8a; }
+  .security-card p { font-size: 0.8rem; line-height: 1.65; }
+  .security-card.warn p { color: #78420d; }
+  .security-card.info p { color: #1e3a8a; }
+
+  /* ── FOOTER ── */
+  .footer {
+    background: var(--navy);
+    color: rgba(255,255,255,0.35);
+    text-align: center;
+    padding: 2rem;
+    font-size: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.05em;
+    line-height: 1.9;
+  }
+  .footer span { color: var(--gold); }
+
+  /* ── DIVIDER ── */
+  .gold-rule {
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--gold), transparent);
+    opacity: 0.3;
+    margin: clamp(2rem, 4vw, 3rem) 0;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 640px) {
+    .tech-table thead { display: none; }
+    .tech-table, .tech-table tbody, .tech-table tr, .tech-table td {
+      display: block; width: 100%;
+    }
+    .tech-table tr {
+      background: var(--white);
+      border: 1px solid var(--border-light);
+      border-radius: 6px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+    }
+    .tech-table td {
+      border-bottom: none;
+      padding: 0.3rem 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    .tech-table td::before {
+      content: attr(data-label);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .hero-meta { gap: 1.2rem; }
+    .roadmap-grid { grid-template-columns: 1fr; }
+    .feature-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  @media (max-width: 400px) {
+    .feature-grid { grid-template-columns: 1fr; }
+  }
+
+  @media print {
+    .hero { background: var(--navy) !important; }
+    section { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">PROJECT BLUEPRINT · v1.1</div>
+  <h1>나의 <span>AI 변호사</span><br>종합 기획서</h1>
+  <p class="hero-sub">국가법령정보 오픈 API와 Claude AI를 결합한 지능형 법률 상담 서비스 — Next.js 기반, Vercel 배포</p>
+  <div class="hero-meta">
+    <div class="hero-meta-item"><strong>Framework</strong>Next.js (App Router)</div>
+    <div class="hero-meta-item"><strong>AI Engine</strong>Claude 3.5 Sonnet</div>
+    <div class="hero-meta-item"><strong>Deployment</strong>Vercel</div>
+    <div class="hero-meta-item"><strong>Data Source</strong>국가법령정보 API</div>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="page">
+
+  <!-- 1. OVERVIEW -->
+  <section>
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2 class="section-title">프로젝트 개요</h2>
+    </div>
+    <div class="overview-card">
+      <p>본 프로젝트는 <strong style="color:var(--gold-light)">법제처 국가법령정보 오픈 API</strong>와 <strong style="color:var(--gold-light)">Claude AI</strong>를 결합하여, 사용자의 질문에 대해 실제 대한민국 법령과 판례를 근거로 답변하는 지능형 법률 상담 서비스를 구축합니다. AI의 단순 추론이 아닌 실시간 법령 데이터를 조회하여 신뢰도 높은 답변을 생성하는 RAG 아키텍처를 채택합니다.</p>
+      <div class="feature-grid">
+        <div class="feature-item">
+          <span class="f-icon">📜</span>
+          <div class="f-title">법령 기반 답변 (RAG)</div>
+          <div class="f-desc">실시간 법령 데이터 조회 후 답변 생성. AI 환각 최소화.</div>
+        </div>
+        <div class="feature-item">
+          <span class="f-icon">🔎</span>
+          <div class="f-title">근거 조항 명시</div>
+          <div class="f-desc">참조한 법률명과 조항 번호를 명확히 표시하여 신뢰성 확보.</div>
+        </div>
+        <div class="feature-item">
+          <span class="f-icon">💬</span>
+          <div class="f-title">채팅 인터페이스</div>
+          <div class="f-desc">일상 언어로 질문 가능한 웹 기반 실시간 채팅 UI.</div>
+        </div>
+        <div class="feature-item">
+          <span class="f-icon">📱</span>
+          <div class="f-title">텔레그램 봇 연동</div>
+          <div class="f-desc">모바일 접근성 확보를 위한 Telegram API 연동 (선택).</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="gold-rule"></div>
+
+  <!-- 2. TECH STACK -->
+  <section>
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2 class="section-title">기술 스택</h2>
+    </div>
+    <div style="overflow-x:auto; border-radius:8px;">
+      <table class="tech-table">
+        <thead>
+          <tr>
+            <th>구분</th>
+            <th>기술</th>
+            <th>비고</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="구분"><span class="cat">Framework</span></td>
+            <td data-label="기술"><span class="tech-badge">Next.js App Router</span></td>
+            <td data-label="비고"><span class="tech-note">Vercel 배포 최적화, SSR/API Route 지원</span></td>
+          </tr>
+          <tr>
+            <td data-label="구분"><span class="cat">AI Model</span></td>
+            <td data-label="기술"><span class="tech-badge">Claude 3.5 Sonnet</span></td>
+            <td data-label="비고"><span class="tech-note">Anthropic SDK 사용, 스트리밍 응답</span></td>
+          </tr>
+          <tr>
+            <td data-label="구분"><span class="cat">Data Layer</span></td>
+            <td data-label="기술"><span class="tech-badge">국가법령정보 API</span></td>
+            <td data-label="비고"><span class="tech-note">korean-law-mcp 로직 활용, 실시간 법령 검색</span></td>
+          </tr>
+          <tr>
+            <td data-label="구분"><span class="cat">Deployment</span></td>
+            <td data-label="기술"><span class="tech-badge">Vercel</span></td>
+            <td data-label="비고"><span class="tech-note">서버리스 함수 타임아웃 주의 → <strong>Streaming 방식 필수 적용</strong>으로 체감 속도 개선</span></td>
+          </tr>
+          <tr>
+            <td data-label="구분"><span class="cat">Styling</span></td>
+            <td data-label="기술"><span class="tech-badge">Tailwind CSS</span></td>
+            <td data-label="비고"><span class="tech-note">채팅 UI, Markdown 렌더링 (react-markdown)</span></td>
+          </tr>
+          <tr>
+            <td data-label="구분"><span class="cat">Optional</span></td>
+            <td data-label="기술"><span class="tech-badge">Telegram Bot API</span></td>
+            <td data-label="비고"><span class="tech-note">Webhook 방식 연동 — <code>/api/telegram</code> 엔드포인트로 메시지 수신·처리</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="gold-rule"></div>
+
+  <!-- 3. ARCHITECTURE -->
+  <section>
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <h2 class="section-title">시스템 아키텍처</h2>
+    </div>
+    <div class="arch-flow">
+      <div class="arch-step">
+        <div class="arch-step-left">
+          <div class="arch-num">01</div>
+          <div class="arch-line"></div>
+        </div>
+        <div class="arch-content">
+          <h4>사용자 질문 입력</h4>
+          <p>웹 채팅 UI 또는 텔레그램 봇을 통해 자연어로 법률 질문 입력</p>
+          <span class="arch-tag">Web UI · Telegram</span>
+        </div>
+      </div>
+      <div class="arch-step">
+        <div class="arch-step-left">
+          <div class="arch-num">02</div>
+          <div class="arch-line"></div>
+        </div>
+        <div class="arch-content">
+          <h4>키워드 추출 & 법령 검색</h4>
+          <p>질문에서 핵심 법률 키워드를 추출하고 국가법령정보 API에 쿼리 전송. 관련 법령·판례 텍스트 수집.</p>
+          <span class="arch-tag">법제처 API · RAG</span>
+        </div>
+      </div>
+      <div class="arch-step">
+        <div class="arch-step-left">
+          <div class="arch-num">03</div>
+          <div class="arch-line"></div>
+        </div>
+        <div class="arch-content">
+          <h4>컨텍스트 주입 (Prompt 구성)</h4>
+          <p>검색된 법률 텍스트를 Claude 프롬프트에 삽입. 법률 전문가 페르소나 및 가드레일 적용.</p>
+          <span class="arch-tag">Prompt Engineering</span>
+        </div>
+      </div>
+      <div class="arch-step">
+        <div class="arch-step-left">
+          <div class="arch-num">04</div>
+          <div class="arch-line"></div>
+        </div>
+        <div class="arch-content">
+          <h4>Claude AI 답변 생성</h4>
+          <p>제공된 법령 데이터 내에서만 답변 생성. 불확실한 경우 모른다고 명시하도록 강제.</p>
+          <span class="arch-tag">Claude 3.5 Sonnet · Streaming</span>
+        </div>
+      </div>
+      <div class="arch-step">
+        <div class="arch-step-left">
+          <div class="arch-num">05</div>
+        </div>
+        <div class="arch-content" style="margin-bottom:0">
+          <h4>근거 조항과 함께 최종 응답 전달</h4>
+          <p>참조 법률명·조항 번호를 Markdown으로 렌더링하여 사용자에게 신뢰도 높은 상담 결과 제공.</p>
+          <span class="arch-tag">Markdown Render · Citation</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="gold-rule"></div>
+
+  <!-- 4. ROADMAP -->
+  <section>
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <h2 class="section-title">개발 로드맵</h2>
+    </div>
+    <div class="roadmap-grid">
+      <div class="roadmap-card active">
+        <div class="roadmap-phase">Phase 01</div>
+        <h4>프로젝트 초기화</h4>
+        <ul class="roadmap-tasks">
+          <li>GitHub 저장소 생성 및 Vercel 연동</li>
+          <li><code>npx create-next-app@latest</code> 실행</li>
+          <li>Anthropic SDK, axios 설치</li>
+          <li><code>.env.local</code> 파일에 API 키 설정</li>
+          <li><code>.gitignore</code>에 .env 추가 확인</li>
+        </ul>
+      </div>
+      <div class="roadmap-card">
+        <div class="roadmap-phase">Phase 02</div>
+        <h4>법령 데이터 연동</h4>
+        <ul class="roadmap-tasks">
+          <li>법제처 API 키 발급 (공공데이터포털)</li>
+          <li>법령 검색 유틸리티 함수 작성</li>
+          <li>질문 키워드 추출 로직 구현</li>
+          <li><strong>XML/JSON 응답 파싱 & 정규화</strong> — API 응답 구조가 복잡하므로 Claude가 읽기 쉬운 텍스트로 변환하는 과정이 핵심</li>
+        </ul>
+      </div>
+      <div class="roadmap-card">
+        <div class="roadmap-phase">Phase 03</div>
+        <h4>AI 프롬프트 엔지니어링</h4>
+        <ul class="roadmap-tasks">
+          <li>법률 전문가 시스템 프롬프트 작성</li>
+          <li>검색 결과 컨텍스트 주입 템플릿</li>
+          <li>가드레일 설정 (범위 외 질문 거절)</li>
+          <li><strong>Streaming 응답 API Route 구성</strong> — Vercel 타임아웃 방지를 위해 <code>ReadableStream</code> 방식으로 구현 필수</li>
+        </ul>
+      </div>
+      <div class="roadmap-card">
+        <div class="roadmap-phase">Phase 04</div>
+        <h4>UI/UX 개발</h4>
+        <ul class="roadmap-tasks">
+          <li>채팅 컴포넌트 구현 (대화 내역 보존)</li>
+          <li>react-markdown 기반 법조문 렌더링</li>
+          <li>반응형 레이아웃 (모바일 최적화)</li>
+          <li>법적 면책 조항 UI 하단 고정 표시</li>
+        </ul>
+      </div>
+      <div class="roadmap-card">
+        <div class="roadmap-phase">Phase 05</div>
+        <h4>배포 & 확장</h4>
+        <ul class="roadmap-tasks">
+          <li>Vercel 환경 변수 재설정 후 배포</li>
+          <li>도메인 연결 및 배포 확인</li>
+          <li>(옵션) <code>/api/telegram</code> Webhook 엔드포인트 구현 — 메시지 수신·처리 후 동일 AI 파이프라인 재활용</li>
+          <li>(옵션) 대화 히스토리 저장 (DB 연동)</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <div class="gold-rule"></div>
+
+  <!-- 5. TECHNICAL REVIEW -->
+  <section>
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <h2 class="section-title">기술 검토 사항</h2>
+    </div>
+    <p style="font-size:0.88rem; color:var(--text-muted); margin-bottom:1.5rem;">개발 착수 전 반드시 숙지해야 할 3가지 기술적 주의사항입니다.</p>
+    <div style="display:flex; flex-direction:column; gap:1rem;">
+
+      <div style="background:var(--white); border:1px solid var(--border-light); border-radius:8px; padding:1.4rem 1.6rem; border-left:4px solid var(--gold);">
+        <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem;">
+          <span style="font-family:'JetBrains Mono',monospace; font-size:0.68rem; background:rgba(201,168,76,0.12); color:var(--gold); border:1px solid var(--border); padding:0.15rem 0.5rem; border-radius:2px; letter-spacing:0.1em;">CRITICAL</span>
+          <h4 style="font-size:0.95rem; font-weight:600; color:var(--navy);">Vercel 서버리스 타임아웃 → Streaming 필수</h4>
+        </div>
+        <p style="font-size:0.83rem; color:var(--text-mid); line-height:1.75; margin-bottom:0.75rem;">Vercel의 서버리스 함수는 기본 10초, Hobby 플랜 최대 60초의 타임아웃이 있습니다. 법령 API 호출 + Claude 추론 시간이 이를 초과할 경우 <code>504 Gateway Timeout</code>이 발생합니다.</p>
+        <div style="background:var(--navy); border-radius:5px; padding:0.9rem 1.2rem; font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:rgba(255,255,255,0.8); line-height:1.8;">
+          <span style="color:var(--gold);">// app/api/chat/route.ts — Streaming 방식</span><br>
+          <span style="color:#a8e6cf;">return</span> new Response(<span style="color:#e8c97a;">stream</span>, {<br>
+          &nbsp;&nbsp;headers: { <span style="color:#a8e6cf;">'Content-Type'</span>: <span style="color:#e8c97a;">'text/event-stream'</span> }<br>
+          });
+        </div>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0.75rem;">→ Claude Code에게 <strong>ReadableStream + TransformStream</strong> 방식으로 API Route를 작성해달라고 명시적으로 요청하세요.</p>
+      </div>
+
+      <div style="background:var(--white); border:1px solid var(--border-light); border-radius:8px; padding:1.4rem 1.6rem; border-left:4px solid #2563eb;">
+        <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem;">
+          <span style="font-family:'JetBrains Mono',monospace; font-size:0.68rem; background:#eef4ff; color:#2563eb; border:1px solid #c7d8fa; padding:0.15rem 0.5rem; border-radius:2px; letter-spacing:0.1em;">OPTIONAL</span>
+          <h4 style="font-size:0.95rem; font-weight:600; color:var(--navy);">텔레그램 Webhook — <code>/api/telegram</code> 엔드포인트</h4>
+        </div>
+        <p style="font-size:0.83rem; color:var(--text-mid); line-height:1.75; margin-bottom:0.75rem;">Vercel 배포 환경에서 텔레그램 봇은 <strong>Polling 방식이 아닌 Webhook 방식</strong>으로만 안정적으로 동작합니다. Polling은 상시 실행 서버가 필요하기 때문입니다.</p>
+        <div style="background:var(--navy); border-radius:5px; padding:0.9rem 1.2rem; font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:rgba(255,255,255,0.8); line-height:1.8;">
+          <span style="color:var(--gold);">// Webhook 등록 (배포 후 1회 실행)</span><br>
+          <span style="color:#a8e6cf;">POST</span> https://api.telegram.org/bot<span style="color:#e8c97a;">{TOKEN}</span>/setWebhook<br>
+          &nbsp;&nbsp;url: <span style="color:#e8c97a;">"https://your-domain.vercel.app/api/telegram"</span>
+        </div>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0.75rem;">→ <code>/api/telegram</code> Route는 텔레그램 메시지를 수신한 뒤 동일한 AI 파이프라인(<code>/api/chat</code>)을 재활용하도록 구현하면 코드 중복을 최소화할 수 있습니다.</p>
+      </div>
+
+      <div style="background:var(--white); border:1px solid var(--border-light); border-radius:8px; padding:1.4rem 1.6rem; border-left:4px solid #e8a000;">
+        <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem;">
+          <span style="font-family:'JetBrains Mono',monospace; font-size:0.68rem; background:#fff8ed; color:#e8a000; border:1px solid #fde3aa; padding:0.15rem 0.5rem; border-radius:2px; letter-spacing:0.1em;">IMPORTANT</span>
+          <h4 style="font-size:0.95rem; font-weight:600; color:var(--navy);">법령 API 응답 XML/JSON 파싱 & 정규화</h4>
+        </div>
+        <p style="font-size:0.83rem; color:var(--text-mid); line-height:1.75; margin-bottom:0.75rem;">국가법령정보 API의 응답은 중첩 XML 또는 복잡한 JSON 구조입니다. 이를 그대로 Claude 프롬프트에 삽입하면 토큰이 낭비되고 답변 품질이 저하됩니다. <strong>정규화 함수가 핵심 품질 결정 요소</strong>입니다.</p>
+        <div style="background:var(--navy); border-radius:5px; padding:0.9rem 1.2rem; font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:rgba(255,255,255,0.8); line-height:1.8;">
+          <span style="color:var(--gold);">// 정규화 목표 형태 (Claude에게 전달)</span><br>
+          <span style="color:#a8e6cf;">법률명:</span> 근로기준법 제56조 (연장·야간·휴일근로)<br>
+          <span style="color:#a8e6cf;">내용:</span> 사용자는 연장근로에 대해 통상임금의<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;100분의 50 이상을 가산하여 지급...
+        </div>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0.75rem;">→ <code>xml2js</code> 또는 내장 DOMParser를 활용하여 법률명·조문번호·내용만 추출하는 <strong>parseStatute()</strong> 함수를 Phase 02에서 우선 완성하세요.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="gold-rule"></div>
+
+  <!-- 6. PROMPT GUIDE -->
+  <section>
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <h2 class="section-title">Claude Code 시작 명령어</h2>
+    </div>
+    <p style="font-size:0.88rem; color:var(--text-muted); margin-bottom:1rem;">VS Code에서 Claude Code를 열고 아래 프롬프트를 그대로 입력하여 프로젝트를 시작하세요.</p>
+    <div class="prompt-box">
+      <div class="prompt-header">
+        <div class="dot dot-r"></div>
+        <div class="dot dot-y"></div>
+        <div class="dot dot-g"></div>
+        <span class="prompt-label">CLAUDE CODE PROMPT</span>
+      </div>
+      <div class="prompt-body">
+        <span class="cm"># 아래 내용을 Claude Code에 입력하세요</span><br><br>
+        <span class="kw">국가법령정보 API</span>와 <span class="kw">Claude</span>를 연동한<br>
+        <span class="kw">Next.js App Router</span> 기반 법률 상담 챗봇을 시작할 거야.<br><br>
+        다음 순서로 구현해줘:<br>
+        <span class="str">1. 프로젝트 폴더 구조를 잡아줘</span><br>
+        <span class="str">2. 법령 API XML 응답을 파싱·정규화하는 parseStatute() 유틸 함수 작성</span><br>
+        <span class="str">3. Vercel 타임아웃 방지를 위해 ReadableStream 방식의</span><br>
+        <span class="str">&nbsp;&nbsp;&nbsp;/api/chat Streaming API Route 구현</span><br>
+        <span class="str">4. (옵션) Webhook 방식의 /api/telegram 엔드포인트 추가</span><br>
+        <span class="str">5. 기본 채팅 UI 컴포넌트를 Tailwind CSS로 구현</span><br><br>
+        <span class="cm"># .env.local에 필요한 환경 변수 목록도 함께 알려줘</span><br>
+        <span class="cm"># ANTHROPIC_API_KEY, LAW_API_KEY, TELEGRAM_BOT_TOKEN</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="gold-rule"></div>
+
+  <!-- 7. SECURITY -->
+  <section>
+    <div class="section-header">
+      <span class="section-num">07</span>
+      <h2 class="section-title">보안 및 주의사항</h2>
+    </div>
+    <div class="security-grid">
+      <div class="security-card warn">
+        <h4>🔐 API 키 노출 방지</h4>
+        <p><code>.env.local</code> 파일은 반드시 <code>.gitignore</code>에 포함하여 GitHub에 업로드되지 않도록 주의하십시오. Vercel 배포 시 환경 변수는 대시보드에서 별도 설정해야 합니다.</p>
+      </div>
+      <div class="security-card info">
+        <h4>⚖️ 법적 면책 조항 필수 표시</h4>
+        <p>UI 하단에 <strong>"본 서비스의 답변은 참고용이며, 실제 법적 효력을 갖지 않습니다. 중요한 법률 문제는 전문 변호사와 상담하시기 바랍니다."</strong> 문구를 반드시 명시해야 합니다.</p>
+      </div>
+      <div class="security-card warn">
+        <h4>⚡ API 사용량 관리</h4>
+        <p>Claude API 및 국가법령정보 API 모두 사용량 제한이 있습니다. 프로덕션 환경에서는 Rate Limiting 미들웨어와 캐싱 전략(Redis 등)을 도입하여 비용을 관리하세요.</p>
+      </div>
+      <div class="security-card info">
+        <h4>📋 가드레일 설정</h4>
+        <p>시스템 프롬프트에 <strong>"검색된 법령 데이터 내에서만 답변하고, 관련 법령이 없거나 불확실한 경우 모른다고 답변할 것"</strong>이라는 지침을 반드시 포함하여 AI 환각을 방지하세요.</p>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div>나의 AI 변호사 — 종합 기획서 <span>v1.1</span></div>
+  <div>Built with <span>Next.js · Claude 3.5 Sonnet · 국가법령정보 API · Vercel</span></div>
+  <div style="margin-top:0.5rem; font-size:0.68rem; opacity:0.5">본 기획서는 참고용이며, 실제 서비스 운영 시 법적 검토가 필요합니다.</div>
+</div>
+
+</body>
+</html>
