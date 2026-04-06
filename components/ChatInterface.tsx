@@ -15,12 +15,33 @@ function generateId() {
   return Math.random().toString(36).slice(2, 11);
 }
 
+// Web Speech API 타입 선언
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
+  }
+}
+
 export default function ChatInterface() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const [interimText, setInterimText] = useState('');
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+
+  // 브라우저 음성인식 지원 여부 확인
+  useEffect(() => {
+    const supported =
+      typeof window !== 'undefined' &&
+      ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+    setSpeechSupported(supported);
+  }, []);
 
   // 새 메시지 올 때 자동 스크롤
   useEffect(() => {
@@ -30,16 +51,82 @@ export default function ChatInterface() {
   }, [messages]);
 
   // textarea 높이 자동 조절
-  const adjustTextareaHeight = () => {
+  const adjustTextareaHeight = (value?: string) => {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+    if (value !== undefined) setInput(value);
   };
+
+  // 음성 인식 시작/중지
+  const toggleListening = useCallback(() => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    const SpeechRecognitionAPI =
+      window.SpeechRecognition ?? window.webkitSpeechRecognition;
+
+    const recognition = new SpeechRecognitionAPI();
+    recognition.lang = 'ko-KR';
+    recognition.continuous = false;       // 발화 끝나면 자동 종료
+    recognition.interimResults = true;    // 중간 결과 실시간 표시
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setInterimText('');
+    };
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let interim = '';
+      let final = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          final += transcript;
+        } else {
+          interim += transcript;
+        }
+      }
+
+      if (final) {
+        // 기존 텍스트에 이어붙임 (이미 타이핑한 내용 보존)
+        const newValue = (input + (input ? ' ' : '') + final).trim();
+        setInput(newValue);
+        setInterimText('');
+        setTimeout(adjustTextareaHeight, 0);
+      } else {
+        setInterimText(interim);
+      }
+    };
+
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      console.error('음성 인식 오류:', event.error);
+      setIsListening(false);
+      setInterimText('');
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      setInterimText('');
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  }, [isListening, input]);
 
   const sendMessage = useCallback(
     async (query: string) => {
       if (!query.trim() || isLoading) return;
+
+      // 음성 인식 중이면 먼저 중지
+      if (isListening) {
+        recognitionRef.current?.stop();
+      }
 
       const userMessage: ChatMessage = {
         id: generateId(),
@@ -61,13 +148,11 @@ export default function ChatInterface() {
       setInput('');
       setIsLoading(true);
 
-      // textarea 높이 초기화
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
 
       try {
-        // 이전 대화 내역 구성 (최대 10턴)
         const history = [...messages, userMessage]
           .slice(-10)
           .map((m) => ({ role: m.role, content: m.content }));
@@ -78,10 +163,7 @@ export default function ChatInterface() {
           body: JSON.stringify({ messages: history, query }),
         });
 
-        if (!response.ok) {
-          throw new Error(`서버 오류 (${response.status})`);
-        }
-
+        if (!response.ok) throw new Error(`서버 오류 (${response.status})`);
         if (!response.body) throw new Error('응답 스트림이 없습니다.');
 
         const reader = response.body.getReader();
@@ -91,27 +173,19 @@ export default function ChatInterface() {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-
           accumulated += decoder.decode(value, { stream: true });
-
           setMessages((prev) =>
             prev.map((m) =>
-              m.id === assistantId
-                ? { ...m, content: accumulated, isStreaming: true }
-                : m
+              m.id === assistantId ? { ...m, content: accumulated, isStreaming: true } : m
             )
           );
         }
 
-        // 스트리밍 완료
         setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantId ? { ...m, isStreaming: false } : m
-          )
+          prev.map((m) => (m.id === assistantId ? { ...m, isStreaming: false } : m))
         );
       } catch (err) {
-        const errorText =
-          err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
+        const errorText = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantId
@@ -127,7 +201,7 @@ export default function ChatInterface() {
         setIsLoading(false);
       }
     },
-    [isLoading, messages]
+    [isLoading, isListening, messages]
   );
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -141,6 +215,11 @@ export default function ChatInterface() {
       sendMessage(input);
     }
   };
+
+  // textarea에 표시할 placeholder
+  const placeholder = isListening
+    ? interimText || '말씀하세요...'
+    : '법률 질문을 입력하세요... (Enter: 전송, Shift+Enter: 줄바꿈)';
 
   return (
     <div className="flex flex-col h-full">
@@ -160,6 +239,11 @@ export default function ChatInterface() {
               <p className="text-text-muted text-sm">
                 법령 데이터를 기반으로 신뢰할 수 있는 답변을 드립니다
               </p>
+              {speechSupported && (
+                <p className="text-text-muted/60 text-xs mt-1">
+                  🎙️ 마이크 버튼으로 음성 입력도 가능합니다
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
@@ -181,7 +265,7 @@ export default function ChatInterface() {
           <MessageBubble key={msg.id} message={msg} />
         ))}
 
-        {/* 로딩 인디케이터 (법령 검색 중) */}
+        {/* 로딩 인디케이터 */}
         {isLoading && messages[messages.length - 1]?.content === '' && (
           <div className="flex gap-2 sm:gap-3">
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-navy border border-gold/20 flex-shrink-0 flex items-center justify-center text-sm">
@@ -201,6 +285,22 @@ export default function ChatInterface() {
         )}
       </div>
 
+      {/* 음성 인식 중 시각 피드백 */}
+      {isListening && (
+        <div className="mx-3 sm:mx-4 mb-2 flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3.5 py-2">
+          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+          <span className="text-xs text-red-600 font-medium flex-1 truncate">
+            {interimText || '듣고 있습니다... (말씀을 마치면 자동으로 입력됩니다)'}
+          </span>
+          <button
+            onClick={toggleListening}
+            className="text-xs text-red-500 underline flex-shrink-0"
+          >
+            취소
+          </button>
+        </div>
+      )}
+
       {/* 입력 영역 */}
       <div className="border-t border-cream-dark bg-white px-3 sm:px-4 py-3">
         <form onSubmit={handleSubmit} className="flex gap-2 items-end max-w-4xl mx-auto">
@@ -212,12 +312,45 @@ export default function ChatInterface() {
               adjustTextareaHeight();
             }}
             onKeyDown={handleKeyDown}
-            placeholder="법률 질문을 입력하세요... (Enter: 전송, Shift+Enter: 줄바꿈)"
+            placeholder={placeholder}
             rows={1}
             disabled={isLoading}
-            className="flex-1 resize-none rounded-xl border border-cream-dark bg-cream px-3.5 py-2.5 text-sm text-text-main placeholder:text-text-muted/60 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/20 disabled:opacity-60 transition-all leading-relaxed overflow-hidden"
+            className={`flex-1 resize-none rounded-xl border px-3.5 py-2.5 text-sm text-text-main placeholder:text-text-muted/60 focus:outline-none focus:ring-1 disabled:opacity-60 transition-all leading-relaxed overflow-hidden ${
+              isListening
+                ? 'border-red-300 bg-red-50 focus:border-red-400 focus:ring-red-100 placeholder:text-red-400'
+                : 'border-cream-dark bg-cream focus:border-gold/50 focus:ring-gold/20'
+            }`}
             style={{ minHeight: '42px', maxHeight: '120px' }}
           />
+
+          {/* 마이크 버튼 (음성 지원 브라우저에서만 표시) */}
+          {speechSupported && (
+            <button
+              type="button"
+              onClick={toggleListening}
+              disabled={isLoading}
+              className={`flex-shrink-0 w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                isListening
+                  ? 'bg-red-500 hover:bg-red-600 shadow-lg shadow-red-200'
+                  : 'bg-cream border border-cream-dark hover:border-gold/40 hover:bg-gold-pale/30'
+              }`}
+              aria-label={isListening ? '음성 입력 중지' : '음성 입력 시작'}
+            >
+              {isListening ? (
+                // 녹음 중: 정지 아이콘
+                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <rect x="6" y="6" width="12" height="12" rx="2" />
+                </svg>
+              ) : (
+                // 대기 중: 마이크 아이콘
+                <svg className="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z" />
+                </svg>
+              )}
+            </button>
+          )}
+
+          {/* 전송 버튼 */}
           <button
             type="submit"
             disabled={!input.trim() || isLoading}
@@ -235,8 +368,10 @@ export default function ChatInterface() {
             )}
           </button>
         </form>
+
         <p className="text-center text-[10px] text-text-muted/40 mt-1.5 hidden sm:block">
           Enter로 전송 · Shift+Enter로 줄바꿈
+          {speechSupported && ' · 🎙️ 마이크로 음성 입력'}
         </p>
       </div>
     </div>
