@@ -15,14 +15,6 @@ function generateId() {
   return Math.random().toString(36).slice(2, 11);
 }
 
-// Web Speech API 타입 선언
-declare global {
-  interface Window {
-    SpeechRecognition: new () => SpeechRecognition;
-    webkitSpeechRecognition: new () => SpeechRecognition;
-  }
-}
-
 export default function ChatInterface() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -33,7 +25,8 @@ export default function ChatInterface() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
 
   // 브라우저 음성인식 지원 여부 확인
   useEffect(() => {
@@ -66,8 +59,8 @@ export default function ChatInterface() {
       return;
     }
 
-    const SpeechRecognitionAPI =
-      window.SpeechRecognition ?? window.webkitSpeechRecognition;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
 
     const recognition = new SpeechRecognitionAPI();
     recognition.lang = 'ko-KR';
@@ -80,7 +73,8 @@ export default function ChatInterface() {
       setInterimText('');
     };
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onresult = (event: any) => {
       let interim = '';
       let final = '';
 
@@ -104,7 +98,8 @@ export default function ChatInterface() {
       }
     };
 
-    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onerror = (event: any) => {
       console.error('음성 인식 오류:', event.error);
       setIsListening(false);
       setInterimText('');
