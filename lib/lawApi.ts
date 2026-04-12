@@ -1,13 +1,12 @@
 // =============================================
 // 국가법령정보 공동활용 Open API 연동
+// axios 대신 네이티브 fetch 사용 (Edge Runtime 호환)
 // API 키 미설정 시 mock 데이터로 동작
 // =============================================
-import axios from 'axios';
 import { ParsedLaw, LawSearchResult } from '@/types';
 import { parseStatute, parseSearchResults } from './parseStatute';
 
 const LAW_API_BASE = 'https://www.law.go.kr/DRF';
-const OC = process.env.LAW_API_KEY ?? '';
 
 /**
  * 질문에서 법령 키워드 추출 (간단한 휴리스틱)
@@ -60,26 +59,27 @@ export function extractLawKeywords(query: string): string[] {
  * 법령명으로 검색하여 MST(법령일련번호) 목록 반환
  */
 export async function searchLaws(keyword: string): Promise<LawSearchResult[]> {
-  if (!OC) {
-    return getMockSearchResults(keyword);
-  }
+  const OC = process.env.LAW_API_KEY;
+  if (!OC) return getMockSearchResults(keyword);
 
   try {
-    const url = `${LAW_API_BASE}/lawSearch.do`;
-    const res = await axios.get(url, {
-      params: {
-        OC: OC,
-        target: 'law',
-        type: 'XML',
-        query: keyword,
-        display: 5,
-        page: 1,
-        sort: 'lawNm',
-      },
-      timeout: 8000,
+    const params = new URLSearchParams({
+      OC,
+      target: 'law',
+      type: 'XML',
+      query: keyword,
+      display: '5',
+      page: '1',
+      sort: 'lawNm',
     });
 
-    return parseSearchResults(res.data);
+    const res = await fetch(`${LAW_API_BASE}/lawSearch.do?${params}`, {
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const xml = await res.text();
+    return parseSearchResults(xml);
   } catch {
     return getMockSearchResults(keyword);
   }
@@ -89,23 +89,24 @@ export async function searchLaws(keyword: string): Promise<LawSearchResult[]> {
  * MST로 법령 본문 조회
  */
 export async function fetchLawContent(mstSeq: string): Promise<ParsedLaw | null> {
-  if (!OC) {
-    return getMockLawContent(mstSeq);
-  }
+  const OC = process.env.LAW_API_KEY;
+  if (!OC) return getMockLawContent(mstSeq);
 
   try {
-    const url = `${LAW_API_BASE}/lawService.do`;
-    const res = await axios.get(url, {
-      params: {
-        OC: OC,
-        target: 'law',
-        MST: mstSeq,
-        type: 'XML',
-      },
-      timeout: 8000,
+    const params = new URLSearchParams({
+      OC,
+      target: 'law',
+      MST: mstSeq,
+      type: 'XML',
     });
 
-    return parseStatute(res.data);
+    const res = await fetch(`${LAW_API_BASE}/lawService.do?${params}`, {
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const xml = await res.text();
+    return parseStatute(xml);
   } catch {
     return null;
   }
@@ -119,7 +120,6 @@ export async function fetchRelevantLaws(query: string): Promise<ParsedLaw[]> {
   const keywords = extractLawKeywords(query);
 
   if (keywords.length === 0) {
-    // 키워드 없으면 일반 검색어로 시도
     const results = await searchLaws(query.slice(0, 20));
     if (results.length > 0) {
       const law = await fetchLawContent(results[0].mstSeq);
@@ -262,8 +262,7 @@ function getMockLawContent(mstSeq: string): ParsedLaw {
       articles: [
         {
           articleNumber: '제1조',
-          content:
-            '(API 키 승인 후 실제 법령 데이터가 제공됩니다. 현재는 예시 데이터로 동작 중입니다.)',
+          content: '(API 키 승인 후 실제 법령 데이터가 제공됩니다. 현재는 예시 데이터로 동작 중입니다.)',
         },
       ],
     }
