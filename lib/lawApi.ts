@@ -90,7 +90,8 @@ export async function searchLaws(keyword: string): Promise<LawSearchResult[]> {
  */
 export async function fetchLawContent(mstSeq: string): Promise<ParsedLaw | null> {
   const OC = process.env.LAW_API_KEY;
-  if (!OC) return getMockLawContent(mstSeq);
+  // API 키 없거나 mock MST인 경우 mock 데이터 반환
+  if (!OC || mstSeq.startsWith('mock-')) return getMockLawContent(mstSeq);
 
   try {
     const params = new URLSearchParams({

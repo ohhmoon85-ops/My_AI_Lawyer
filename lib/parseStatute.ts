@@ -1,40 +1,41 @@
 // =============================================
-// 국가법령정보 API XML/JSON 응답 파싱 & 정규화
+// 국가법령정보 API XML 응답 파싱 & 정규화
+// 실제 API 태그명 기준으로 작성
 // =============================================
 import { ParsedLaw, ParsedArticle, LawSearchResult } from '@/types';
 
 /**
- * 국가법령정보 API XML 응답을 파싱하여 정규화된 구조로 변환
  * 법령 본문 XML → { lawName, mstSeq, articles[] }
+ * lawService.do 응답 파싱
  */
 export function parseStatute(xmlText: string): ParsedLaw | null {
   try {
-    // 법령명 추출
-    const lawNameMatch = xmlText.match(/<법령명>([\s\S]*?)<\/법령명>/);
-    const mstSeqMatch = xmlText.match(/<MST>([\s\S]*?)<\/MST>/);
+    // 실제 API 태그: <법령명한글>, <법령일련번호>
+    const lawNameMatch =
+      xmlText.match(/<법령명한글>([\s\S]*?)<\/법령명한글>/) ||
+      xmlText.match(/<법령명>([\s\S]*?)<\/법령명>/);
+    const mstSeqMatch =
+      xmlText.match(/<법령일련번호>([\s\S]*?)<\/법령일련번호>/) ||
+      xmlText.match(/<MST>([\s\S]*?)<\/MST>/);
 
     const lawName = lawNameMatch ? cleanText(lawNameMatch[1]) : '알 수 없는 법령';
     const mstSeq = mstSeqMatch ? cleanText(mstSeqMatch[1]) : '';
 
-    // 조문 파싱 (조문단위 또는 조 태그)
     const articles: ParsedArticle[] = [];
 
-    // <조문단위> 블록 파싱 시도
+    // <조문단위> 블록 파싱
     const articleUnitRegex = /<조문단위>([\s\S]*?)<\/조문단위>/g;
     let match;
-
     while ((match = articleUnitRegex.exec(xmlText)) !== null) {
-      const block = match[1];
-      const article = parseArticleBlock(block);
+      const article = parseArticleBlock(match[1]);
       if (article) articles.push(article);
     }
 
-    // <조문단위>가 없으면 <조> 태그 파싱
+    // <조문단위> 없으면 <조> 태그 시도
     if (articles.length === 0) {
       const articleRegex = /<조>([\s\S]*?)<\/조>/g;
       while ((match = articleRegex.exec(xmlText)) !== null) {
-        const block = match[1];
-        const article = parseArticleBlock(block);
+        const article = parseArticleBlock(match[1]);
         if (article) articles.push(article);
       }
     }
@@ -46,9 +47,10 @@ export function parseStatute(xmlText: string): ParsedLaw | null {
 }
 
 /**
- * 조문 블록에서 조번호, 조제목, 내용 추출
+ * 조문 블록에서 조번호·제목·내용 추출
  */
 function parseArticleBlock(block: string): ParsedArticle | null {
+  // 실제 API 태그: <조문번호>, <조문제목>, <조문내용>
   const numberMatch =
     block.match(/<조문번호>([\s\S]*?)<\/조문번호>/) ||
     block.match(/<조번호>([\s\S]*?)<\/조번호>/);
@@ -64,17 +66,18 @@ function parseArticleBlock(block: string): ParsedArticle | null {
   const articleNumber = numberMatch ? cleanText(numberMatch[1]) : '';
   const articleTitle = titleMatch ? cleanText(titleMatch[1]) : undefined;
 
-  // 항/호 내용도 수집
   const paragraphs: string[] = [];
   if (contentMatch) {
     paragraphs.push(cleanText(contentMatch[1]));
   }
 
-  // <항> 태그들 수집
+  // <항> 태그 수집
   const paraRegex = /<항>([\s\S]*?)<\/항>/g;
   let paraMatch;
   while ((paraMatch = paraRegex.exec(block)) !== null) {
-    const paraContent = paraMatch[1].match(/<항내용>([\s\S]*?)<\/항내용>/);
+    const paraContent =
+      paraMatch[1].match(/<항내용>([\s\S]*?)<\/항내용>/) ||
+      paraMatch[1].match(/<호내용>([\s\S]*?)<\/호내용>/);
     if (paraContent) paragraphs.push(cleanText(paraContent[1]));
   }
 
@@ -86,7 +89,8 @@ function parseArticleBlock(block: string): ParsedArticle | null {
 
 /**
  * 법령 검색 결과 XML 파싱
- * 검색 결과 목록 → LawSearchResult[]
+ * lawSearch.do 응답 → LawSearchResult[]
+ * 실제 API 태그: <법령명한글>, <법령일련번호>
  */
 export function parseSearchResults(xmlText: string): LawSearchResult[] {
   const results: LawSearchResult[] = [];
@@ -97,8 +101,12 @@ export function parseSearchResults(xmlText: string): LawSearchResult[] {
 
     while ((match = itemRegex.exec(xmlText)) !== null) {
       const block = match[1];
-      const nameMatch = block.match(/<법령명>([\s\S]*?)<\/법령명>/);
+
+      const nameMatch =
+        block.match(/<법령명한글>([\s\S]*?)<\/법령명한글>/) ||
+        block.match(/<법령명>([\s\S]*?)<\/법령명>/);
       const mstMatch =
+        block.match(/<법령일련번호>([\s\S]*?)<\/법령일련번호>/) ||
         block.match(/<법령MST>([\s\S]*?)<\/법령MST>/) ||
         block.match(/<MST>([\s\S]*?)<\/MST>/);
       const procMatch = block.match(/<공포일자>([\s\S]*?)<\/공포일자>/);
@@ -123,7 +131,7 @@ export function parseSearchResults(xmlText: string): LawSearchResult[] {
 /**
  * Claude에게 전달할 형태로 법령 데이터 정규화
  */
-export function formatLawForPrompt(law: ParsedLaw, maxArticles = 10): string {
+export function formatLawForPrompt(law: ParsedLaw, maxArticles = 15): string {
   const lines: string[] = [];
   lines.push(`【법령명】 ${law.lawName}`);
   lines.push('');
