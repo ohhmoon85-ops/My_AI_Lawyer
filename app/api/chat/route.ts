@@ -6,6 +6,9 @@ import Anthropic from '@anthropic-ai/sdk';
 import { fetchRelevantLaws } from '@/lib/lawApi';
 import { buildContextualPrompt, SYSTEM_PROMPT, getMockModeNotice } from '@/lib/promptBuilder';
 
+// Vercel Hobby: 최대 60초 / Pro: 최대 300초
+export const maxDuration = 60;
+
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
@@ -25,20 +28,23 @@ export async function POST(request: Request) {
       });
     }
 
-    // 국가법령정보 API에서 관련 법령 조회
+    // 국가법령정보 API에서 관련 법령 조회 (최대 6초 대기)
     const isMockMode = !process.env.LAW_API_KEY;
-    const relevantLaws = await fetchRelevantLaws(query);
+    const relevantLaws = await Promise.race([
+      fetchRelevantLaws(query),
+      new Promise<[]>((resolve) => setTimeout(() => resolve([]), 6000)),
+    ]);
 
     // 법령 원문을 포함한 프롬프트 구성
     const contextualQuery = buildContextualPrompt(query, relevantLaws);
 
-    // 대화 내역 구성 (최대 10턴)
+    // 대화 내역 구성 (최대 6턴 — 컨텍스트 절약)
     const apiMessages: Array<{ role: 'user' | 'assistant'; content: string }> = [
-      ...messages.slice(0, -1),
+      ...messages.slice(0, -1).slice(-6),
       { role: 'user', content: contextualQuery },
     ];
 
-    // Claude가 법령 원문을 읽고 친절한 답변으로 변환하여 스트리밍
+    // Claude 스트리밍 — max_tokens 4096으로 충분한 응답 길이 확보
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
@@ -46,7 +52,7 @@ export async function POST(request: Request) {
         try {
           const streamResponse = client.messages.stream({
             model: 'claude-sonnet-4-6',
-            max_tokens: 2048,
+            max_tokens: 4096,
             system: SYSTEM_PROMPT,
             messages: apiMessages,
           });
