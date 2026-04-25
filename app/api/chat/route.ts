@@ -1,12 +1,10 @@
 // =============================================
-// 채팅 API Route - Streaming 방식 (Vercel 타임아웃 방지)
-// ReadableStream + Anthropic SDK 스트리밍
+// 채팅 API Route - 단일 스트리밍 호출
+// 법령 데이터 조회 → Claude가 친절한 답변으로 직접 변환
 // =============================================
 import Anthropic from '@anthropic-ai/sdk';
 import { fetchRelevantLaws } from '@/lib/lawApi';
 import { buildContextualPrompt, SYSTEM_PROMPT, getMockModeNotice } from '@/lib/promptBuilder';
-
-export const runtime = 'edge'; // Edge Runtime: 스트리밍 최적화
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -27,20 +25,20 @@ export async function POST(request: Request) {
       });
     }
 
-    // 법령 데이터 병렬 조회
+    // 국가법령정보 API에서 관련 법령 조회
     const isMockMode = !process.env.LAW_API_KEY;
     const relevantLaws = await fetchRelevantLaws(query);
 
-    // 마지막 사용자 메시지를 법령 컨텍스트로 강화
+    // 법령 원문을 포함한 프롬프트 구성
     const contextualQuery = buildContextualPrompt(query, relevantLaws);
 
-    // 이전 대화 내역 + 현재 컨텍스트 메시지 구성
+    // 대화 내역 구성 (최대 10턴)
     const apiMessages: Array<{ role: 'user' | 'assistant'; content: string }> = [
-      ...messages.slice(0, -1), // 마지막 메시지 제외 (컨텍스트 버전으로 교체)
+      ...messages.slice(0, -1),
       { role: 'user', content: contextualQuery },
     ];
 
-    // ReadableStream으로 Streaming 응답 생성
+    // Claude가 법령 원문을 읽고 친절한 답변으로 변환하여 스트리밍
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
@@ -62,15 +60,12 @@ export async function POST(request: Request) {
             }
           }
 
-          // Mock 모드 알림 추가
           if (isMockMode) {
             controller.enqueue(encoder.encode(getMockModeNotice()));
           }
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : '오류가 발생했습니다.';
-          controller.enqueue(
-            encoder.encode(`\n\n⚠️ 오류: ${errorMsg}`)
-          );
+          controller.enqueue(encoder.encode(`\n\n⚠️ 오류: ${errorMsg}`));
         } finally {
           controller.close();
         }
