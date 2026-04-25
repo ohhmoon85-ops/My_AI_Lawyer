@@ -4,15 +4,105 @@ import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ChatMessage } from '@/types';
+import {
+  Document, Packer, Paragraph, TextRun, HeadingLevel,
+  AlignmentType, BorderStyle, Table, TableRow, TableCell,
+  WidthType, ShadingType,
+} from 'docx';
 
 interface Props {
   message: ChatMessage;
+}
+
+// 마크다운 텍스트를 docx Paragraph 배열로 변환
+function markdownToDocx(text: string): Paragraph[] {
+  const lines = text.split('\n');
+  const paragraphs: Paragraph[] = [];
+
+  for (const line of lines) {
+    // 제목
+    if (line.startsWith('### ')) {
+      paragraphs.push(new Paragraph({
+        text: line.slice(4).replace(/\*\*/g, ''),
+        heading: HeadingLevel.HEADING_3,
+        spacing: { before: 200, after: 80 },
+      }));
+    } else if (line.startsWith('## ')) {
+      paragraphs.push(new Paragraph({
+        text: line.slice(3).replace(/\*\*/g, ''),
+        heading: HeadingLevel.HEADING_2,
+        spacing: { before: 300, after: 100 },
+      }));
+    } else if (line.startsWith('# ')) {
+      paragraphs.push(new Paragraph({
+        text: line.slice(2).replace(/\*\*/g, ''),
+        heading: HeadingLevel.HEADING_1,
+        spacing: { before: 400, after: 200 },
+      }));
+    // 구분선
+    } else if (line.startsWith('---') || line.startsWith('━')) {
+      paragraphs.push(new Paragraph({
+        border: { bottom: { color: 'C9A84C', size: 6, style: BorderStyle.SINGLE } },
+        spacing: { before: 100, after: 100 },
+        children: [new TextRun('')],
+      }));
+    // 인용구 (>)
+    } else if (line.startsWith('> ')) {
+      paragraphs.push(new Paragraph({
+        children: [new TextRun({
+          text: line.slice(2).replace(/\*\*/g, ''),
+          italics: true,
+          color: '6B6B8A',
+        })],
+        indent: { left: 400 },
+        spacing: { before: 60, after: 60 },
+      }));
+    // 순서 없는 목록
+    } else if (/^[-*•]\s/.test(line)) {
+      paragraphs.push(new Paragraph({
+        children: parseBoldRuns(line.slice(2)),
+        bullet: { level: 0 },
+        spacing: { before: 40, after: 40 },
+      }));
+    // 순서 있는 목록
+    } else if (/^\d+[.。]\s/.test(line)) {
+      const content = line.replace(/^\d+[.。]\s/, '');
+      paragraphs.push(new Paragraph({
+        children: parseBoldRuns(content),
+        numbering: { reference: 'default-numbering', level: 0 },
+        spacing: { before: 40, after: 40 },
+      }));
+    // 빈 줄
+    } else if (line.trim() === '') {
+      paragraphs.push(new Paragraph({ children: [new TextRun('')], spacing: { before: 60 } }));
+    // 일반 텍스트 (굵게 처리 포함)
+    } else {
+      paragraphs.push(new Paragraph({
+        children: parseBoldRuns(line),
+        spacing: { before: 60, after: 60 },
+      }));
+    }
+  }
+
+  return paragraphs;
+}
+
+// **텍스트** 를 굵은 TextRun으로 파싱
+function parseBoldRuns(text: string): TextRun[] {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map(part => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return new TextRun({ text: part.slice(2, -2), bold: true });
+    }
+    return new TextRun({ text: part });
+  });
 }
 
 export default function MessageBubble({ message }: Props) {
   const isUser = message.role === 'user';
   const isStreaming = message.isStreaming;
   const [copied, setCopied] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   const handleCopy = async () => {
     try {
@@ -20,7 +110,6 @@ export default function MessageBubble({ message }: Props) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // 구형 브라우저 fallback
       const el = document.createElement('textarea');
       el.value = message.content;
       document.body.appendChild(el);
@@ -32,26 +121,64 @@ export default function MessageBubble({ message }: Props) {
     }
   };
 
-  const handleDownload = () => {
-    const timestamp = new Date(message.timestamp).toLocaleString('ko-KR', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).replace(/\. /g, '-').replace(/\./g, '').replace(/ /g, '_').replace(/:/g, '');
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const dateStr = new Date(message.timestamp).toLocaleString('ko-KR');
+      const fileStamp = dateStr
+        .replace(/\. /g, '-').replace(/\./g, '')
+        .replace(/ /g, '_').replace(/:/g, '');
 
-    const filename = `AI법률상담_${timestamp}.txt`;
-    const content = `[AI 법률 상담 결과]\n생성일시: ${new Date(message.timestamp).toLocaleString('ko-KR')}\n\n${message.content}`;
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+      const doc = new Document({
+        numbering: {
+          config: [{
+            reference: 'default-numbering',
+            levels: [{ level: 0, format: 'decimal', text: '%1.', alignment: AlignmentType.LEFT }],
+          }],
+        },
+        sections: [{
+          properties: {},
+          children: [
+            // 표지 헤더
+            new Paragraph({
+              children: [new TextRun({ text: '⚖ AI 법률 상담 결과', bold: true, size: 36, color: '0B1C36' })],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 200 },
+            }),
+            new Paragraph({
+              children: [new TextRun({ text: `생성일시: ${dateStr}`, size: 20, color: '6B6B8A' })],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 100 },
+            }),
+            new Paragraph({
+              children: [new TextRun({ text: '본 문서는 참고용이며 실제 법적 효력이 없습니다. 중요한 법률 문제는 전문 변호사와 상담하세요.', size: 18, color: 'FF6B6B', italics: true })],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 400 },
+            }),
+            // 구분선
+            new Paragraph({
+              border: { bottom: { color: 'C9A84C', size: 12, style: BorderStyle.SINGLE } },
+              spacing: { after: 400 },
+              children: [new TextRun('')],
+            }),
+            // 본문 (마크다운 → docx)
+            ...markdownToDocx(message.content),
+          ],
+        }],
+      });
+
+      const blob = await Packer.toBlob(doc);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `AI법률상담_${fileStamp}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
@@ -99,7 +226,7 @@ export default function MessageBubble({ message }: Props) {
             })}
           </span>
 
-          {/* AI 응답에만 복사/다운로드 버튼 표시 (스트리밍 완료 후) */}
+          {/* AI 응답에만 복사/저장 버튼 표시 (스트리밍 완료 후) */}
           {!isUser && !isStreaming && message.content && (
             <div className="flex items-center gap-1">
               {/* 복사 버튼 */}
@@ -125,16 +252,28 @@ export default function MessageBubble({ message }: Props) {
                 )}
               </button>
 
-              {/* 다운로드 버튼 */}
+              {/* Word 저장 버튼 */}
               <button
                 onClick={handleDownload}
-                title="텍스트 파일로 저장"
-                className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] text-gray-400 hover:text-navy hover:bg-cream border border-transparent hover:border-cream-dark transition-all duration-150"
+                disabled={downloading}
+                title="Word 문서(.docx)로 저장"
+                className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] text-gray-400 hover:text-navy hover:bg-cream border border-transparent hover:border-cream-dark transition-all duration-150 disabled:opacity-50"
               >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                </svg>
-                저장
+                {downloading ? (
+                  <>
+                    <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="30 70" />
+                    </svg>
+                    저장 중
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                    Word
+                  </>
+                )}
               </button>
             </div>
           )}
